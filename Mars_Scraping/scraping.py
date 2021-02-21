@@ -17,7 +17,8 @@ def scrape_all():
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
         "facts": mars_facts(),
-        "last_modified": dt.datetime.now()
+        "last_modified": dt.datetime.now(),
+        "hemispheres": hemispheres(browser)
     }
 
     # Stop webdriver and return data
@@ -94,6 +95,62 @@ def mars_facts():
 
     # Convert dataframe into HTML format, add bootstrap
     return df.to_html(classes="table table-striped")
+
+
+def hemispheres(browser):  
+    # Use the browser to visit the URL 
+    url = 'https://astrogeology.usgs.gov/search/results?q=hemisphere+enhanced&k1=target&v1=Mars'
+    browser.visit(url)
+
+    # Create a list to hold the images and titles 
+    hemisphere_image_urls = []
+
+    # Get list of all the hemispheres
+    ref_link = browser.find_by_css("a.product-item h3")
+
+    # loop through, click, find the sample anchor, and return the href of the links
+    for i in range(len(ref_link)):
+        hemisphere = {}
+    
+        # find the elements on each loop to avoid a stale element exception
+        browser.find_by_css("a.product-item h3")[i].click()
+    
+        # find the Sample image anchor tag and extract the href
+        sample_jpg = browser.links.find_by_text('Sample').first
+        hemisphere['img_url'] = sample_jpg['href']
+    
+        # Get title
+        hemisphere['title'] = browser.find_by_css("h2.title").text
+    
+        # Append object to list
+        hemisphere_image_urls.append(hemisphere)
+    
+        # Navigate back
+        browser.back()
+
+    return hemisphere_image_urls
+
+def scrape_hemisphere(html_text):
+    # parse html text
+    hemi_soup = soup(html_text, "html.parser")
+
+    # adding try/except for error handling
+    try:
+        title_elem = hemi_soup.find("h2", class_="title").get_text()
+        sample_elem = hemi_soup.find("a", text="Sample").get("href")
+
+    except AttributeError:
+        title_elem = None
+        sample_elem = None
+
+    hemispheres = {
+        "title": title_elem,
+        "img_url": sample_elem
+    }
+
+    return hemispheres
+
+
 
 if __name__ == "__main__":
 
